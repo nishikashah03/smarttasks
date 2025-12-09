@@ -53,69 +53,39 @@ document.addEventListener("DOMContentLoaded", () => {
   ////////////////////////////////////
   // SIMPLE RULE PARSER
   ////////////////////////////////////
-
   function parseTaskInput(text) {
     text = text.trim();
-    console.log("Rule parsing:", text);
-
-    let keyword = null;
-    if (text.includes(" by ")) keyword = " by ";
-    else if (text.includes(" due ")) keyword = " due ";
-
     let title = text;
-    let rawDate = null;
-
-    if (keyword) {
-      const parts = text.split(keyword);
-      title = parts[0].trim();
-      rawDate = parts[1] ? parts[1].trim() : null;
-    }
-
+    let date = null;
+  
     // yyyy-mm-dd
-    if (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-      return {
-        title,
-        deadline: rawDate,
-        category: detectCategory(title)
-      };
+    let match = text.match(/by (\d{4}-\d{2}-\d{2})/i);
+    if (match) {
+        date = match[1];
+        title = text.replace(match[0], "").trim();
+        return { title, deadline: date, category: detectCategory(title) };
     }
-
-    // dd/mm/yyyy
-    if (rawDate && /^\d{2}\/\d{2}\/\d{4}$/.test(rawDate)) {
-      const [dd, mm, yyyy] = rawDate.split("/");
-      return {
-        title,
-        deadline: `${yyyy}-${mm}-${dd}`,
-        category: detectCategory(title)
-      };
-    }
-
-    const lower = text.toLowerCase();
-
+  
     // today
-    if (lower.includes("today")) {
-      let d = new Date();
-      return {
-        title: title.replace(/today/i, "").trim(),
-        deadline: toISO(d),
-        category: detectCategory(title)
-      };
+    if (/today/i.test(text)) {
+        date = todayISO();
+        title = text.replace(/today/i, "").trim();
+        return { title, deadline: date, category: detectCategory(title) };
     }
-
+  
     // tomorrow
-    if (lower.includes("tomorrow")) {
-      let d = new Date();
-      d.setDate(d.getDate() + 1);
-      return {
-        title: title.replace(/tomorrow/i, "").trim(),
-        deadline: toISO(d),
-        category: detectCategory(title)
-      };
+    if (/tomorrow/i.test(text)) {
+        let d = new Date();
+        d.setDate(d.getDate() + 1);
+        date = d.toISOString().slice(0, 10);
+        title = text.replace(/tomorrow/i, "").trim();
+        return { title, deadline: date, category: detectCategory(title) };
     }
-
-    // ❗ anything else → tell system "no match → use AI"
+  
+    // ❗ NO MATCH → FORCE AI FALLBACK
     return null;
   }
+  
 
   function extractLines(text) {
     return text

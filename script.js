@@ -54,37 +54,55 @@ document.addEventListener("DOMContentLoaded", () => {
   // SIMPLE RULE PARSER
   ////////////////////////////////////
   function parseTaskInput(text) {
+    console.log("---- parseTaskInput called ----");
+    console.log("INPUT:", text);
+
     text = text.trim();
     let title = text;
     let date = null;
-  
-    // yyyy-mm-dd
+
+    // Case 1: YYYY-MM-DD
     let match = text.match(/by (\d{4}-\d{2}-\d{2})/i);
     if (match) {
-        date = match[1];
-        title = text.replace(match[0], "").trim();
-        return { title, deadline: date, category: detectCategory(title) };
+        console.log("Matched explicit date:", match[1]);
+        return {
+            title: title.replace(match[0], "").trim(),
+            deadline: match[1],
+            category: detectCategory(title)
+        };
     }
-  
-    // today
+
+    // Case 2: TODAY
     if (/today/i.test(text)) {
         date = todayISO();
-        title = text.replace(/today/i, "").trim();
-        return { title, deadline: date, category: detectCategory(title) };
+        console.log("Matched TODAY:", date);
+        return {
+            title: title.replace(/today/i, "").trim(),
+            deadline: date,
+            category: detectCategory(title)
+        };
     }
-  
-    // tomorrow
+
+    // Case 3: TOMORROW
     if (/tomorrow/i.test(text)) {
         let d = new Date();
         d.setDate(d.getDate() + 1);
         date = d.toISOString().slice(0, 10);
-        title = text.replace(/tomorrow/i, "").trim();
-        return { title, deadline: date, category: detectCategory(title) };
+        console.log("Matched TOMORROW:", date);
+        return {
+            title: title.replace(/tomorrow/i, "").trim(),
+            deadline: date,
+            category: detectCategory(title)
+        };
     }
-  
-    // ❗ NO MATCH → FORCE AI FALLBACK
-    return null;
-  }
+
+    // ---------------------------
+    // DEBUG LOG BEFORE RETURNING NULL
+    // ---------------------------
+    console.log("NO MATCH → returning NULL for AI fallback");
+    return null;   // <----------- NECESSARY FOR AI FALLBACK
+}
+
   
 
   function extractLines(text) {

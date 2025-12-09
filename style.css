@@ -1,0 +1,265 @@
+/* ------------------------------
+   GLOBAL RESET + BASE STYLES
+------------------------------ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  
+  body {
+    background: #f0f2f5;
+    color: #222;
+    overflow: hidden;
+  }
+  
+  /* ------------------------------
+     LAYOUT GRID
+  ------------------------------ */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    height: 100vh;
+  }
+  
+  /* ------------------------------
+     SIDEBAR
+  ------------------------------ */
+  .sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e6e6e6;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .logo {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 30px;
+  }
+  
+  /* Sidebar menu buttons */
+  .menu button {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #f3f4f6;
+    margin-bottom: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.15s ease;
+  }
+  
+  .menu button:hover {
+    background: #e5e7eb;
+  }
+  
+  .menu button.active {
+    background: #007bff;
+    color: white;
+  }
+  
+  /* Sidebar bottom buttons */
+  .settings button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 8px;
+    background: #e8e8e8;
+    border: none;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  
+  .settings button:hover {
+    background: #d1d5db;
+  }
+  
+  /* ------------------------------
+     MAIN PANEL
+  ------------------------------ */
+  .main {
+    padding: 40px;
+    overflow-y: auto;
+    background: #f7f9fc;
+  }
+  
+  .main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .main-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+  }
+  
+  /* Add Task button */
+  .primary-btn {
+    background: #007bff;
+    padding: 12px 20px;
+    color: white;
+    font-size: 15px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: 0.15s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
+  
+  .primary-btn:hover {
+    background: #0065d1;
+  }
+  
+  /* Task section */
+  #task-sections h3 {
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  
+  /* Task card */
+  .task {
+    
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px;
+        background: white;
+        border-radius: 14px;
+        margin-bottom: 14px;
+        font-size: 16px;
+      }
+      
+      .task-title {
+        font-weight: 500;
+      }
+      
+      .task-date {
+        color: #666;
+        margin-left: 12px;
+        font-size: 14px;
+      }
+      
+  
+  
+  /* ------------------------------
+     RIGHT PANEL
+  ------------------------------ */
+  .right-panel {
+    background: #ffffff;
+    border-left: 1px solid #e6e6e6;
+    padding: 35px 24px;
+    overflow-y: auto;
+  }
+  
+  .right-panel h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  
+  .card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(6px);
+    padding: 18px;
+    border-radius: 14px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    font-size: 15px;
+  }
+  /* ------------------------------
+   MODAL OVERLAY
+------------------------------ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+  
+  .modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  /* ------------------------------
+     MODAL CARD
+  ------------------------------ */
+  .modal {
+    background: white;
+    padding: 26px 30px;
+    border-radius: 14px;
+    width: 380px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+    animation: modalPop 0.25s ease;
+  }
+  
+  @keyframes modalPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  .modal h2 {
+    margin-bottom: 18px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  
+  .modal label {
+    font-size: 14px;
+    margin-top: 12px;
+    display: block;
+    font-weight: 500;
+  }
+  
+  .modal input,
+  .modal select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  
+  .modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .secondary-btn {
+    padding: 10px 14px;
+    background: #e5e5e5;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .secondary-btn:hover {
+    background: #d1d1d1;
+  }
+  #smart-input {
+    width: 100%;
+    height: 120px;       /* bigger box */
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.4;
+    border: 1px solid #ccc;
+    resize: vertical;    /* user can stretch */
+  }
+  

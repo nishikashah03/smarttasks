@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTasks Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<!-- ADD TASK MODAL -->
+<div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Add Task</h2>
+  
+      <label>Title</label>
+      <input type="text" id="modal-title">
+  
+      <label>Deadline</label>
+      <input type="date" id="modal-deadline">
+  
+      <label>Category</label>
+      <select id="modal-category">
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="leisure">Leisure</option>
+      </select>
+  
+      <div class="modal-actions">
+        <button id="modal-cancel" class="secondary-btn">Cancel</button>
+        <button id="modal-add" class="primary-btn">Add Task</button>
+      </div>
+    </div>
+  </div>
+  
+<body>
+    <div id="smart-overlay" class="modal-overlay hidden">
+        <div class="smart-modal">
+          <h2>Smart Add</h2>
+      
+        <textarea 
+            id="smart-input" 
+            placeholder="Type tasks here..."
+        ></textarea>
+
+      
+          <p class="hint">Automatically extracts title + deadline + category</p>
+      
+          <div class="modal-actions">
+            <button id="smart-cancel" class="secondary-btn">Cancel</button>
+            <button id="smart-submit" class="primary-btn">Add</button>
+          </div>
+        </div>
+      </div>
+      
+<div class="dashboard">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+        <h2 class="logo">SmartTasks</h2>
+
+        <nav class="menu">
+            <button data-filter="all">All Tasks</button>
+            <button data-filter="today">Today</button>
+            <button data-filter="upcoming">Upcoming</button>
+            <button data-filter="work">Work</button>
+            <button data-filter="personal">Personal</button>
+            <button data-filter="leisure">Leisure</button>
+            <button data-filter="completed">Completed</button>
+        </nav>
+
+        <div class="settings">
+            <button id="theme-btn">Theme</button>
+            <button id="smart-add-btn">Smart Add</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+        <header class="main-header">
+            <h1>Dashboard</h1>
+            <button id="add-task-main" class="primary-btn">+ Add Task</button>
+        </header>
+
+        <!-- Task sections -->
+        <section id="task-sections">
+            <h3>All Tasks</h3>
+            <div id="task-list"></div>
+        </section>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="right-panel">
+        <h3>Insights</h3>
+
+        <div id="insight-cards">
+            <div class="card">Tasks Today: <span id="count-today">0</span></div>
+            <div class="card">Completed: <span id="count-completed">0</span></div>
+            <div class="card">Upcoming: <span id="count-upcoming">0</span></div>
+        </div>
+
+        <h3>Timetable</h3>
+        <div id="timetable"></div>
+    </aside>
+
+</div>
+
+<!-- MAIN SCRIPT -->
+<script src="script.js"></script>
+</body>
+</html>

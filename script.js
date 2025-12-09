@@ -4,7 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ////////////////////////////////////
   // ELEMENT REFERENCES
   ////////////////////////////////////
-
   const smartBtn = document.getElementById("smart-add-btn");
   const smartOverlay = document.getElementById("smart-overlay");
   const smartInput = document.getElementById("smart-input");
@@ -25,11 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let tasks = [];
 
   ////////////////////////////////////
-  // UTILITY FUNCTIONS
+  // UTILS
   ////////////////////////////////////
 
-  function toISO(d) {
-    return d.toISOString().slice(0, 10);
+  function toISO(date) {
+    return date.toISOString().slice(0, 10);
   }
 
   function formatDisplayDate(iso) {
@@ -38,162 +37,147 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${d}/${m}/${y}`;
   }
 
-  ////////////////////////////////////
-  // CATEGORY DETECTOR
-  ////////////////////////////////////
-
   function detectCategory(text) {
     text = text.toLowerCase();
-    if (/assignment|project|essay|exam|study|class/.test(text)) return "work";
-    if (/call|gym|buy|groceries|clean|doctor/.test(text)) return "personal";
-    if (/movie|game|party|chill|hangout/.test(text)) return "leisure";
+
+    if (/assignment|project|essay|exam|study|class|report/i.test(text))
+      return "work";
+    if (/call|gym|buy|groceries|clean|doctor|family/i.test(text))
+      return "personal";
+    if (/movie|game|party|hangout|chill/i.test(text))
+      return "leisure";
+
     return "work";
   }
 
   ////////////////////////////////////
-  // SIMPLE RULE-BASED DATE PARSER
+  // SIMPLE RULE PARSER
   ////////////////////////////////////
 
   function parseTaskInput(text) {
     text = text.trim();
-    console.log("Parsing:", text);
+    console.log("Rule parsing:", text);
 
     let keyword = null;
     if (text.includes(" by ")) keyword = " by ";
     else if (text.includes(" due ")) keyword = " due ";
 
-    let titlePart = text;
+    let title = text;
     let rawDate = null;
 
     if (keyword) {
-      [titlePart, rawDate] = text.split(keyword);
-      titlePart = titlePart.trim();
-      rawDate = rawDate ? rawDate.trim() : null;
+      const parts = text.split(keyword);
+      title = parts[0].trim();
+      rawDate = parts[1] ? parts[1].trim() : null;
     }
 
-    // -------------------------------
-    // EXPLICIT YYYY-MM-DD
-    // -------------------------------
+    // yyyy-mm-dd
     if (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
       return {
-        title: titlePart,
+        title,
         deadline: rawDate,
-        category: detectCategory(titlePart),
+        category: detectCategory(title)
       };
     }
 
-    // -------------------------------
-    // EXPLICIT DD/MM/YYYY
-    // -------------------------------
+    // dd/mm/yyyy
     if (rawDate && /^\d{2}\/\d{2}\/\d{4}$/.test(rawDate)) {
-      let [dd, mm, yyyy] = rawDate.split("/");
+      const [dd, mm, yyyy] = rawDate.split("/");
       return {
-        title: titlePart,
+        title,
         deadline: `${yyyy}-${mm}-${dd}`,
-        category: detectCategory(titlePart),
+        category: detectCategory(title)
       };
     }
 
-    let lower = text.toLowerCase();
+    const lower = text.toLowerCase();
 
-    // -------------------------------
-    // TODAY
-    // -------------------------------
+    // today
     if (lower.includes("today")) {
       let d = new Date();
       return {
-        title: titlePart.replace(/today/i, "").trim(),
+        title: title.replace(/today/i, "").trim(),
         deadline: toISO(d),
-        category: detectCategory(titlePart),
+        category: detectCategory(title)
       };
     }
 
-    // -------------------------------
-    // TOMORROW
-    // -------------------------------
+    // tomorrow
     if (lower.includes("tomorrow")) {
       let d = new Date();
       d.setDate(d.getDate() + 1);
       return {
-        title: titlePart.replace(/tomorrow/i, "").trim(),
+        title: title.replace(/tomorrow/i, "").trim(),
         deadline: toISO(d),
-        category: detectCategory(titlePart),
+        category: detectCategory(title)
       };
     }
 
-    // -------------------------------
-    // ❗ NO REAL DATE FOUND → AI FALLBACK
-    // -------------------------------
+    // ❗ anything else → tell system "no match → use AI"
     return null;
   }
-
-  ////////////////////////////////////
-  // SPLIT INTO LINES
-  ////////////////////////////////////
 
   function extractLines(text) {
     return text
       .split(/[\n.;]+/)
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
   }
 
-  ////////////////////////////////////
-  // RULE PARSE MULTIPLE TASKS
-  ////////////////////////////////////
-
   function ruleParseParagraph(text) {
-    let lines = extractLines(text);
-    let results = [];
+    const lines = extractLines(text);
+    const results = [];
 
-    for (let line of lines) {
+    for (const line of lines) {
       let parsed = parseTaskInput(line);
+
+      // Only accept rule-parsed tasks if deadline is VALID
       if (parsed && parsed.deadline) {
         results.push(parsed);
       }
     }
 
-    console.log("Rule parsed:", results);
+    console.log("Rule parsed tasks:", results);
     return results;
   }
 
   ////////////////////////////////////
-  // SMART ADD HANDLER
+  // SMART ADD (AI FALLBACK)
   ////////////////////////////////////
 
   smartSubmit.addEventListener("click", async () => {
-    console.log("Smart Submit triggered");
+    console.log("Smart Add Submitted");
 
     const text = smartInput.value.trim();
 
-    // Step 1: RULE PARSER
+    // 1) Rule parser
     const ruleTasks = ruleParseParagraph(text);
 
+    // 2) AI fallback if rule parser failed
     if (ruleTasks.length === 0) {
-      // Step 2: AI FALLBACK
-      console.log("No valid rule tasks — using AI…");
+      console.log("→ Using AI fallback");
 
       try {
         const response = await fetch("/api/parseTasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text })
         });
 
         const aiTasks = await response.json();
         console.log("AI tasks:", aiTasks);
 
         if (aiTasks.error) {
-          alert("AI could not understand this.");
+          alert("AI could not parse this text.");
           return;
         }
 
-        for (let t of aiTasks) {
+        for (const t of aiTasks) {
           tasks.push({
             title: t.title,
             deadline: t.deadline,
             category: t.category,
-            completed: false,
+            completed: false
           });
         }
 
@@ -208,13 +192,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // RULE PARSER SUCCEEDED
-    for (let t of ruleTasks) {
+    // 3) Rule-parsed tasks succeed
+    console.log("→ Using rule-based parser");
+
+    for (const t of ruleTasks) {
       tasks.push({
         title: t.title,
         deadline: t.deadline,
         category: t.category,
-        completed: false,
+        completed: false
       });
     }
 
@@ -224,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   ////////////////////////////////////
-  // NORMAL ADD TASK (MODAL)
+  // NORMAL ADD TASK
   ////////////////////////////////////
 
   addMainBtn.addEventListener("click", () => {
@@ -249,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
       title,
       deadline,
       category,
-      completed: false,
+      completed: false
     });
 
     modalTitle.value = "";
@@ -261,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   ////////////////////////////////////
-  // SORT TASKS
+  // SORT + RENDER
   ////////////////////////////////////
 
   function sortTasks() {
@@ -272,16 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  ////////////////////////////////////
-  // RENDER TASKS
-  ////////////////////////////////////
-
   function renderTasks() {
     taskList.innerHTML = "";
 
     const active = tasks.filter((t) => !t.completed);
 
-    active.forEach((task) => {
+    for (const task of active) {
       const row = document.createElement("div");
       row.className = "task";
 
@@ -310,13 +292,13 @@ document.addEventListener("DOMContentLoaded", () => {
       row.appendChild(left);
       row.appendChild(doneBtn);
       taskList.appendChild(row);
-    });
+    }
 
     updateInsights();
   }
 
   ////////////////////////////////////
-  // INSIGHTS PANEL
+  // INSIGHTS
   ////////////////////////////////////
 
   function updateInsights() {
@@ -334,13 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   ////////////////////////////////////
-  // INITIAL RENDER
-  ////////////////////////////////////
-
-  renderTasks();
-
-  ////////////////////////////////////
-  // SMART ADD UI OPEN/CLOSE
+  // OPEN/CLOSE SMART ADD
   ////////////////////////////////////
 
   smartBtn.addEventListener("click", () => {
@@ -352,4 +328,10 @@ document.addEventListener("DOMContentLoaded", () => {
   smartCancel.addEventListener("click", () => {
     smartOverlay.classList.add("hidden");
   });
+
+  ////////////////////////////////////
+  // INITIAL RENDER
+  ////////////////////////////////////
+
+  renderTasks();
 });

@@ -1,34 +1,33 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("SmartTasks loaded.");
 
-  ////////////////////////////////////
-  // ELEMENT REFERENCES
-  ////////////////////////////////////
+  // -----------------------------
+  // DOM ELEMENTS
+  // -----------------------------
   const smartBtn = document.getElementById("smart-add-btn");
   const smartOverlay = document.getElementById("smart-overlay");
   const smartInput = document.getElementById("smart-input");
   const smartCancel = document.getElementById("smart-cancel");
   const smartSubmit = document.getElementById("smart-submit");
 
-  const taskList = document.getElementById("task-list");
-
   const modalOverlay = document.getElementById("modal-overlay");
   const modalTitle = document.getElementById("modal-title");
   const modalDeadline = document.getElementById("modal-deadline");
   const modalCategory = document.getElementById("modal-category");
-
   const addMainBtn = document.getElementById("add-task-main");
   const modalCancel = document.getElementById("modal-cancel");
   const modalAddBtn = document.getElementById("modal-add");
 
+  const taskList = document.getElementById("task-list");
+
+  // Task storage
   let tasks = [];
 
-  ////////////////////////////////////
-  // UTILS
-  ////////////////////////////////////
-
-  function toISO(date) {
-    return date.toISOString().slice(0, 10);
+  // -----------------------------
+  // UTILITIES
+  // -----------------------------
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
   }
 
   function formatDisplayDate(iso) {
@@ -39,111 +38,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function detectCategory(text) {
     text = text.toLowerCase();
-
-    if (/assignment|project|essay|exam|study|class|report/i.test(text))
-      return "work";
-    if (/call|gym|buy|groceries|clean|doctor|family/i.test(text))
-      return "personal";
-    if (/movie|game|party|hangout|chill/i.test(text))
-      return "leisure";
-
+    if (/assignment|essay|project|study|report|exam|class/.test(text)) return "work";
+    if (/call|buy|clean|gym|doctor|groceries/.test(text)) return "personal";
+    if (/movie|game|party|hangout|chill/.test(text)) return "leisure";
     return "work";
   }
 
-  ////////////////////////////////////
-  // SIMPLE RULE PARSER
-  ////////////////////////////////////
+  // -----------------------------
+  // RULE-BASED DATE PARSER
+  // -----------------------------
   function parseTaskInput(text) {
-    console.log("---- parseTaskInput called ----");
-    console.log("INPUT:", text);
-
     text = text.trim();
     let title = text;
-    let date = null;
+    let deadline = null;
 
-    // Case 1: YYYY-MM-DD
-    let match = text.match(/by (\d{4}-\d{2}-\d{2})/i);
-    if (match) {
-        console.log("Matched explicit date:", match[1]);
-        return {
-            title: title.replace(match[0], "").trim(),
-            deadline: match[1],
-            category: detectCategory(title)
-        };
+    // CASE 1: "by YYYY-MM-DD"
+    let exact = text.match(/by (\d{4}-\d{2}-\d{2})/i);
+    if (exact) {
+      deadline = exact[1];
+      title = text.replace(exact[0], "").trim();
+      return { title, deadline, category: detectCategory(title) };
     }
 
-    // Case 2: TODAY
+    // CASE 2: "today"
     if (/today/i.test(text)) {
-        date = todayISO();
-        console.log("Matched TODAY:", date);
-        return {
-            title: title.replace(/today/i, "").trim(),
-            deadline: date,
-            category: detectCategory(title)
-        };
+      deadline = todayISO();
+      title = text.replace(/today/i, "").trim();
+      return { title, deadline, category: detectCategory(title) };
     }
 
-    // Case 3: TOMORROW
+    // CASE 3: "tomorrow"
     if (/tomorrow/i.test(text)) {
-        let d = new Date();
-        d.setDate(d.getDate() + 1);
-        date = d.toISOString().slice(0, 10);
-        console.log("Matched TOMORROW:", date);
-        return {
-            title: title.replace(/tomorrow/i, "").trim(),
-            deadline: date,
-            category: detectCategory(title)
-        };
+      let d = new Date();
+      d.setDate(d.getDate() + 1);
+      deadline = d.toISOString().slice(0, 10);
+      title = text.replace(/tomorrow/i, "").trim();
+      return { title, deadline, category: detectCategory(title) };
     }
 
-    // ---------------------------
-    // DEBUG LOG BEFORE RETURNING NULL
-    // ---------------------------
-    console.log("NO MATCH → returning NULL for AI fallback");
-    return null;   // <----------- NECESSARY FOR AI FALLBACK
-}
+    // Nothing matched → return task WITHOUT deadline
+    return { title, deadline: null, category: detectCategory(title) };
+  }
 
-  
-
-  function extractLines(text) {
+  function extractTasks(text) {
     return text
-      .split(/[\n.;]+/)
-      .map((x) => x.trim())
-      .filter((x) => x.length > 0);
+      .split(/[\n\.;]+/)
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
   }
 
-  function ruleParseParagraph(text) {
-    const lines = extractLines(text);
-    const results = [];
-
-    for (const line of lines) {
-      let parsed = parseTaskInput(line);
-
-      // Only accept rule-parsed tasks if deadline is VALID
-      if (parsed && parsed.deadline) {
-        results.push(parsed);
-      }
-    }
-
-    console.log("Rule parsed tasks:", results);
-    return results;
+  function parseParagraph(text) {
+    return extractTasks(text).map(parseTaskInput);
   }
 
-  ////////////////////////////////////
-  // SMART ADD (AI FALLBACK)
-  ////////////////////////////////////
-
+  // -----------------------------
+  // SMART ADD LOGIC
+  // -----------------------------
   smartSubmit.addEventListener("click", async () => {
-    console.log("Smart Add Submitted");
+    console.log("Smart Submit triggered");
 
     const text = smartInput.value.trim();
+    if (!text) return;
 
-    // 1) Rule parser
-    const ruleTasks = ruleParseParagraph(text);
+    let parsed = parseParagraph(text);
+    console.log("Rule parsed:", parsed);
 
-    // 2) AI fallback if rule parser failed
-    if (ruleTasks.length === 0) {
-      console.log("→ Using AI fallback");
+    const hasRealDate = parsed.some(t => t.deadline !== null);
+
+    // -----------------------------
+    // AI FALLBACK → if no dates found
+    // -----------------------------
+    if (!hasRealDate) {
+      console.log("Rule parser failed → AI fallback triggered");
 
       try {
         const response = await fetch("/api/parseTasks", {
@@ -152,38 +118,27 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({ text })
         });
 
-        const aiTasks = await response.json();
-        console.log("AI tasks:", aiTasks);
+        const ai = await response.json();
+        console.log("AI result:", ai);
 
-        if (aiTasks.error) {
-          alert("AI could not parse this text.");
+        if (ai.error) {
+          alert("AI could not parse your text.");
           return;
         }
 
-        for (const t of aiTasks) {
-          tasks.push({
-            title: t.title,
-            deadline: t.deadline,
-            category: t.category,
-            completed: false
-          });
-        }
+        parsed = ai; // use AI tasks
 
-        sortTasks();
-        renderTasks();
-        smartOverlay.classList.add("hidden");
-        return;
       } catch (err) {
-        console.error("AI error:", err);
+        console.error("AI request error:", err);
         alert("AI parsing failed.");
         return;
       }
     }
 
-    // 3) Rule-parsed tasks succeed
-    console.log("→ Using rule-based parser");
-
-    for (const t of ruleTasks) {
+    // -----------------------------
+    // ADD ALL PARSED TASKS
+    // -----------------------------
+    for (let t of parsed) {
       tasks.push({
         title: t.title,
         deadline: t.deadline,
@@ -192,15 +147,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    sortTasks();
-    renderTasks();
     smartOverlay.classList.add("hidden");
+    renderTasks();
   });
 
-  ////////////////////////////////////
-  // NORMAL ADD TASK
-  ////////////////////////////////////
-
+  // -----------------------------
+  // ADD TASK (NORMAL)
+  // -----------------------------
   addMainBtn.addEventListener("click", () => {
     modalOverlay.classList.remove("hidden");
   });
@@ -214,10 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const deadline = modalDeadline.value;
     const category = modalCategory.value;
 
-    if (!title) {
-      alert("Enter a task title.");
-      return;
-    }
+    if (!title) return alert("Please enter a title");
 
     tasks.push({
       title,
@@ -230,96 +180,37 @@ document.addEventListener("DOMContentLoaded", () => {
     modalDeadline.value = "";
     modalOverlay.classList.add("hidden");
 
-    sortTasks();
     renderTasks();
   });
 
-  ////////////////////////////////////
-  // SORT + RENDER
-  ////////////////////////////////////
-
-  function sortTasks() {
-    tasks.sort((a, b) => {
-      if (!a.deadline) return 1;
-      if (!b.deadline) return -1;
-      return new Date(a.deadline) - new Date(b.deadline);
-    });
-  }
-
+  // -----------------------------
+  // RENDER TASKS
+  // -----------------------------
   function renderTasks() {
     taskList.innerHTML = "";
 
-    const active = tasks.filter((t) => !t.completed);
+    const active = tasks.filter(t => !t.completed);
 
-    for (const task of active) {
+    active.forEach(task => {
       const row = document.createElement("div");
       row.className = "task";
 
-      const left = document.createElement("div");
-      left.className = "task-left";
-
-      left.innerHTML = `
-        <span class="task-title">${task.title}</span>
-        ${
-          task.deadline
-            ? `<span class="task-date">${formatDisplayDate(task.deadline)}</span>`
-            : ""
-        }
+      row.innerHTML = `
+        <div class="task-left">
+          <span class="task-title">${task.title}</span>
+          ${task.deadline ? `<span class="task-date">${formatDisplayDate(task.deadline)}</span>` : ""}
+        </div>
+        <button class="secondary-btn">Done</button>
       `;
 
-      const doneBtn = document.createElement("button");
-      doneBtn.className = "secondary-btn";
-      doneBtn.textContent = "Done";
-
-      doneBtn.addEventListener("click", () => {
+      row.querySelector("button").addEventListener("click", () => {
         task.completed = true;
         renderTasks();
-        updateInsights();
       });
 
-      row.appendChild(left);
-      row.appendChild(doneBtn);
       taskList.appendChild(row);
-    }
-
-    updateInsights();
+    });
   }
-
-  ////////////////////////////////////
-  // INSIGHTS
-  ////////////////////////////////////
-
-  function updateInsights() {
-    const today = toISO(new Date());
-
-    document.getElementById("count-today").textContent =
-      tasks.filter((t) => t.deadline === today && !t.completed).length;
-
-    document.getElementById("count-completed").textContent =
-      tasks.filter((t) => t.completed).length;
-
-    document.getElementById("count-upcoming").textContent =
-      tasks.filter((t) => t.deadline && t.deadline > today && !t.completed)
-        .length;
-  }
-
-  ////////////////////////////////////
-  // OPEN/CLOSE SMART ADD
-  ////////////////////////////////////
-
-  smartBtn.addEventListener("click", () => {
-    smartOverlay.classList.remove("hidden");
-    smartInput.value = "";
-    smartInput.focus();
-  });
-
-  smartCancel.addEventListener("click", () => {
-    smartOverlay.classList.add("hidden");
-  });
-
-  ////////////////////////////////////
-  // INITIAL RENDER
-  ////////////////////////////////////
 
   renderTasks();
 });

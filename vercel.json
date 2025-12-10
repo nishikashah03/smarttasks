@@ -1,10 +1,32 @@
 {
     "version": 2,
     "builds": [
-      { "src": "api/parseTasks.js", "use": "@vercel/node" }
+      {
+        "src": "api/parseTasks.js",
+        "use": "@vercel/node"
+      },
+      {
+        "src": "*.html",
+        "use": "@vercel/static"
+      },
+      {
+        "src": "*.js",
+        "use": "@vercel/static"
+      },
+      {
+        "src": "*.css",
+        "use": "@vercel/static"
+      }
     ],
     "routes": [
-      { "src": "/api/parseTasks", "dest": "/api/parseTasks.js" }
+      {
+        "src": "/api/parseTasks",
+        "dest": "/api/parseTasks.js"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
+      }
     ]
   }
   
